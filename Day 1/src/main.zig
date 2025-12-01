@@ -20,6 +20,7 @@ fn part1(turn_list: *const parsing.TurnList) usize {
     return result;
 }
 
+// Brute force solution. Works, but is (probably) slow.
 fn part2Old(turn_list: *const parsing.TurnList) usize {
     var dial_position: i32 = 50;
     var result: u32 = 0;
@@ -48,6 +49,7 @@ fn part2Old(turn_list: *const parsing.TurnList) usize {
     return result;
 }
 
+// Better, smarter solution
 fn part2(turn_list: *const parsing.TurnList) usize {
     var dial_position: i32 = 50;
     var result: u32 = 0;
@@ -61,10 +63,10 @@ fn part2(turn_list: *const parsing.TurnList) usize {
         const was_zero = dial_position == 0;
 
         const offset_position = turn_amount + dial_position;
-        result += @abs(offset_position) / dial_limit;
+        result += @abs(offset_position) / dial_limit; // Number of full rotations
 
         dial_position = @mod(offset_position, dial_limit);
-        result += @intCast(@intFromBool(offset_position <= 0 and !was_zero));
+        result += @intCast(@intFromBool(offset_position <= 0 and !was_zero)); // Add one for edge case
     }
 
     return result;
