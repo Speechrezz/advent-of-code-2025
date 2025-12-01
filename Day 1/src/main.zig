@@ -1,8 +1,9 @@
 const std = @import("std");
 const parsing = @import("parsing.zig");
 
+const dial_limit = 100;
+
 fn part1(turn_list: *const parsing.TurnList) usize {
-    const dial_limit = 100;
     var dial_position: i32 = 50;
     var result: u32 = 0;
 
@@ -19,8 +20,7 @@ fn part1(turn_list: *const parsing.TurnList) usize {
     return result;
 }
 
-fn part2(turn_list: *const parsing.TurnList) usize {
-    const dial_limit = 100;
+fn part2Old(turn_list: *const parsing.TurnList) usize {
     var dial_position: i32 = 50;
     var result: u32 = 0;
     var increment: i32 = undefined;
@@ -43,6 +43,28 @@ fn part2(turn_list: *const parsing.TurnList) usize {
             dial_position = @mod(dial_position + increment, dial_limit);
             result += @intCast(@intFromBool(dial_position == 0));
         }
+    }
+
+    return result;
+}
+
+fn part2(turn_list: *const parsing.TurnList) usize {
+    var dial_position: i32 = 50;
+    var result: u32 = 0;
+
+    for (turn_list.items) |turn| {
+        const turn_amount = switch (turn) {
+            .left => |amount| -amount,
+            .right => |amount| amount,
+        };
+
+        const was_zero = dial_position == 0;
+
+        const offset_position = turn_amount + dial_position;
+        result += @abs(offset_position) / dial_limit;
+
+        dial_position = @mod(offset_position, dial_limit);
+        result += @intCast(@intFromBool(offset_position <= 0 and !was_zero));
     }
 
     return result;
