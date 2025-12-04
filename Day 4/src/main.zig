@@ -31,6 +31,31 @@ fn part1(diagram: *const parsing.Diagram) u64 {
     return sum;
 }
 
+fn part2(allocator: std.mem.Allocator, diagram: *parsing.Diagram) !u64 {
+    var working_buffer = try allocator.alloc(u8, diagram.data.len);
+    defer allocator.free(working_buffer);
+    @memcpy(working_buffer, diagram.data);
+
+    var sum: u64 = 0;
+
+    while (true) {
+        var local_sum: u64 = 0;
+        var rolls_iterator = diagram.iterator();
+        while (rolls_iterator.next()) {
+            if (countAdjacent(&rolls_iterator) < 4) {
+                local_sum += 1;
+                working_buffer[rolls_iterator.getIndex()] = parsing.Diagram.empty;
+            }
+        }
+
+        if (local_sum == 0) break;
+        sum += local_sum;
+        @memcpy(diagram.data, working_buffer); // Update diagram buffer
+    }
+
+    return sum;
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -41,10 +66,10 @@ pub fn main() !void {
     defer allocator.free(contents);
 
     // Parse
-    const diagram = try parsing.Diagram.init(allocator, contents);
+    var diagram = try parsing.Diagram.init(allocator, contents);
     defer diagram.deinit(allocator);
 
     // Solve
     std.debug.print("[Part 1] Solution={}\n", .{part1(&diagram)});
-    //std.debug.print("[Part 2] Solution={}\n", .{part2(contents)});
+    std.debug.print("[Part 2] Solution={}\n", .{try part2(allocator, &diagram)});
 }

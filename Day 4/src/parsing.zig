@@ -19,12 +19,12 @@ fn getDimensions(contents: []const u8) struct { usize, usize } {
 }
 
 pub const Diagram = struct {
-    data: []const u8,
+    data: []u8,
     width: i32,
     height: i32,
 
-    const empty = '.';
-    const rolls = '@';
+    pub const empty = '.';
+    pub const rolls = '@';
 
     pub fn init(allocator: std.mem.Allocator, contents: []const u8) !@This() {
         const trimmed = std.mem.trimEnd(u8, contents, values_to_strip);
@@ -84,6 +84,10 @@ pub const Diagram = struct {
         index: usize = 0,
         x: i32 = 0,
         y: i32 = 0,
+
+        pub fn getIndex(self: *const @This()) usize {
+            return self.index - 1;
+        }
 
         pub fn next(self: *@This()) bool {
             while (self.index < self.diagram.data.len) {
