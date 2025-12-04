@@ -14,24 +14,8 @@ fn findLargest(bank: []const u8) struct { index: usize, digit: u8 } {
     return .{ .index = index, .digit = largest - '0' };
 }
 
-fn part1(contents: []const u8) u32 {
-    var sum: u32 = 0;
-
-    var bank_iterator = parsing.BankIterator.init(contents);
-    while (bank_iterator.next()) |bank| {
-        const first = findLargest(bank[0 .. bank.len - 1]);
-        const second = findLargest(bank[first.index + 1 ..]);
-
-        const joltage = @as(u32, @intCast(first.digit)) * 10 + @as(u32, @intCast(second.digit));
-        sum += joltage;
-    }
-
-    return sum;
-}
-
-fn part2(contents: []const u8) u64 {
+fn calculateJoltage(contents: []const u8, batteries_per_bank: usize) u64 {
     var sum: u64 = 0;
-    const batteries_per_bank = 12;
 
     var bank_iterator = parsing.BankIterator.init(contents);
     while (bank_iterator.next()) |bank| {
@@ -65,6 +49,6 @@ pub fn main() !void {
     defer allocator.free(contents);
 
     // Solve
-    std.debug.print("[Part 1] Solution={}\n", .{part1(contents)});
-    std.debug.print("[Part 2] Solution={}\n", .{part2(contents)});
+    std.debug.print("[Part 1] Solution={}\n", .{calculateJoltage(contents, 2)});
+    std.debug.print("[Part 2] Solution={}\n", .{calculateJoltage(contents, 12)});
 }
