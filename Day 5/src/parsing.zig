@@ -11,24 +11,38 @@ pub const Range = struct {
     min: u64,
     max: u64,
 
-    pub fn difference(self: *const @This()) u64 {
-        return self.max - self.min;
+    pub fn length(self: *const @This()) u64 {
+        std.debug.assert(self.min <= self.max);
+        return self.max - self.min + 1;
     }
 
     pub fn isInRange(self: *const @This(), id: u64) bool {
         return self.min <= id and id <= self.max;
     }
 
-    pub fn overlap(self: *const @This(), other: *const @This()) ?@This() {
-        const start = @max(self.min, other.min);
-        const end = @min(self.max, other.max);
+    pub fn isOverlappingOrTouching(self: *const @This(), other: *const @This()) bool {
+        return (other.min <= self.max + 1);
+    }
 
-        if (start > end) return null;
+    // Assumes ranges are sorted by `Range.min` ascending
+    pub fn merge(self: *const @This(), other: *const @This()) ?@This() {
+        std.debug.assert(self.min <= other.min); // Sort the ranges
+
+        if (!self.isOverlappingOrTouching(other)) return null;
 
         return .{
-            .min = start,
-            .max = end,
+            .min = self.min,
+            .max = @max(self.max, other.max),
         };
+    }
+
+    // Used in `std.sort.block()`
+    pub fn sortAsc() fn (void, lhs: Range, rhs: Range) bool {
+        return struct {
+            pub fn inner(_: void, a: Range, b: Range) bool {
+                return a.min < b.min;
+            }
+        }.inner;
     }
 };
 
