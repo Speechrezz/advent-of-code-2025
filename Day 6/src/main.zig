@@ -11,15 +11,32 @@ fn part1(column_list: *parsing.ColumnList) u64 {
     return sum;
 }
 
-fn part2(allocator: std.mem.Allocator, column_list: *parsing.ColumnList) u64 {
-    var temp_buffer = try std.ArrayList(u64).initCapacity(allocator, column_list.items[0].numbers.items.len);
-    defer temp_buffer.deinit(allocator);
-    var work_buffer = temp_buffer.items;
+fn charToDigit(char: u8) u8 {
+    return char - '0';
+}
 
+fn part2(column_list: *parsing.ColumnList) u64 {
     var sum: u64 = 0;
 
     for (column_list.items) |column| {
-        column
+        var result: u64 = if (column.operation == .add) 0 else 1;
+        for (0..column.numbers.items[0].slice.len) |i| {
+            var value: u64 = 0;
+            for (column.numbers.items) |number| {
+                const char = number.slice[i];
+                if (!std.ascii.isDigit(char)) continue;
+
+                value *= 10;
+                value += @intCast(charToDigit(char));
+            }
+
+            switch (column.operation) {
+                .add => result += value,
+                .mul => result *= value,
+            }
+        }
+
+        sum += result;
     }
 
     return sum;
@@ -31,18 +48,14 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     // Open the file
-    const contents = try parsing.readFile(allocator, "input copy.txt");
+    const contents = try parsing.readFile(allocator, "input.txt");
     defer allocator.free(contents);
 
     // Parse
     var column_list = try parsing.parseColumns(allocator, contents);
     defer parsing.deinitColumnList(allocator, &column_list);
 
-    for (column_list.items, 0..) |column, i| {
-        std.debug.print("[{}] op={}, items={any}\n", .{ i, column.operation, column.numbers.items });
-    }
-
     // Solve
     std.debug.print("[Part 1] Solution={}\n", .{part1(&column_list)});
-    std.debug.print("[Part 2] Solution={}\n", .{part2(allocator, &column_list)});
+    std.debug.print("[Part 2] Solution={}\n", .{part2(&column_list)});
 }

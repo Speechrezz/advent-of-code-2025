@@ -52,53 +52,48 @@ pub fn deinitColumnList(allocator: std.mem.Allocator, list: *ColumnList) void {
 pub fn parseColumns(allocator: std.mem.Allocator, contents: []const u8) !ColumnList {
     var column_list: ColumnList = .empty;
 
-    const trimmed = std.mem.trimEnd(u8, contents, " \n\r");
+    const trimmed = std.mem.trimEnd(u8, contents, "\n\r");
+    const line_length = std.mem.indexOfAny(u8, trimmed, "\r\n") orelse unreachable;
 
-    var line_iterator = std.mem.splitScalar(u8, trimmed, '\n');
-    const first_line = std.mem.trimEnd(u8, line_iterator.first(), " \n\r");
-    var first_iterator = std.mem.tokenizeScalar(u8, first_line, ' ');
+    var index: usize = 0;
 
-    while (first_iterator.next()) |token| {
-        var column: Column = undefined;
+    while (index < line_length) {
+
+        // Find column length
+
+        var column_length: usize = 0;
+        var line_iterator = std.mem.tokenizeAny(u8, trimmed, "\n\r");
+        while (line_iterator.next()) |full_line| {
+            const line = full_line[index..];
+            const current_length = std.mem.indexOfScalar(u8, line, ' ') orelse line.len;
+            column_length = @max(column_length, current_length);
+        }
+
+        // Populate column data
+
+        var column = try column_list.addOne(allocator);
         column.numbers = .empty;
-        std.debug.print("token1=\'{s}\'\n", .{token});
-        try column.numbers.append(allocator, .{
-            .slice = token,
-            .value = try std.fmt.parseUnsigned(u64, token, 10),
-        });
 
-        try column_list.append(allocator, column);
-    }
+        line_iterator.reset();
+        while (line_iterator.next()) |full_line| {
+            const token = full_line[index .. index + column_length];
+            const token_trimmed = std.mem.trim(u8, token, " ");
 
-    std.debug.print("len={}\n", .{column_list.items.len});
-
-    while (line_iterator.next()) |full_line| {
-        const line = std.mem.trimEnd(u8, full_line, " \n\r");
-        var token_iterator = std.mem.tokenizeScalar(u8, line, ' ');
-
-        if (line_iterator.peek() != null) {
-            var i: usize = 0;
-            while (token_iterator.next()) |token| {
-                defer i += 1;
-
-                var numbers = &column_list.items[i].numbers;
-                try numbers.append(allocator, .{
+            if (line_iterator.peek() != null) {
+                try column.numbers.append(allocator, .{
                     .slice = token,
-                    .value = try std.fmt.parseUnsigned(u64, token, 10),
+                    .value = try std.fmt.parseUnsigned(u64, token_trimmed, 10),
                 });
-            }
-        } else {
-            var i: usize = 0;
-            while (token_iterator.next()) |token| {
-                defer i += 1;
-
-                switch (token[0]) {
-                    '+' => column_list.items[i].operation = .add,
-                    '*' => column_list.items[i].operation = .mul,
-                    else => {},
-                }
+            } else {
+                column.operation = switch (token[0]) {
+                    '+' => MathOperation.add,
+                    '*' => MathOperation.mul,
+                    else => unreachable,
+                };
             }
         }
+
+        index += column_length + 1;
     }
 
     return column_list;
