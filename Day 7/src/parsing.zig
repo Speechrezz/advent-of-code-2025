@@ -42,6 +42,16 @@ pub const Diagram = struct {
         allocator.free(self.data);
     }
 
+    pub fn clone(self: *const @This(), allocator: std.mem.Allocator) !@This() {
+        const data = try allocator.alloc(u8, self.data.len);
+        @memcpy(data, self.data);
+        return .{
+            .data = data,
+            .width = self.width,
+            .height = self.height,
+        };
+    }
+
     pub fn coordsToIndex(self: *const @This(), x: usize, y: usize) usize {
         std.debug.assert(x < self.width);
         std.debug.assert(y < self.height);

@@ -1,13 +1,6 @@
 const std = @import("std");
 const parsing = @import("parsing.zig");
 
-fn setToLaserWithCheck(point: *u8) u64 {
-    if (point.* != parsing.Diagram.empty) return 0;
-
-    point.* = parsing.Diagram.laser;
-    return 1;
-}
-
 fn hasLaserAbove(diagram: *parsing.Diagram, x: usize, y: usize) u64 {
     const current = diagram.atCoords(x, y);
     if (current.* == parsing.Diagram.laser or current.* == parsing.Diagram.empty) {
@@ -41,6 +34,55 @@ fn part1(diagram: *parsing.Diagram) u64 {
     return split_count;
 }
 
+const Position = struct {
+    x: usize,
+    y: usize,
+};
+
+const Part2Context = struct {
+    diagram: *parsing.Diagram,
+    count: usize = 0,
+};
+
+fn findFirstSplitterPosition(diagram: *parsing.Diagram) Position {
+    const y = 2;
+    return .{
+        .x = std.mem.indexOfScalar(u8, diagram.getLine(y), parsing.Diagram.splitter) orelse unreachable,
+        .y = y,
+    };
+}
+
+fn findSplitterBelow(context: *Part2Context, start_pos: Position) void {
+    var pos = start_pos;
+    while (pos.y < context.diagram.height) {
+        defer pos.y += 2;
+        if (context.diagram.atCoords(pos.x, pos.y).* == parsing.Diagram.splitter) {
+            visitSplitter(context, pos);
+            return;
+        }
+    }
+
+    // Reached bottom
+    context.count += 1;
+}
+
+fn visitSplitter(context: *Part2Context, pos: Position) void {
+    //std.debug.print("[LEFT]  visitSplitter()=({}, {})\n", .{ pos.x, pos.y });
+    findSplitterBelow(context, .{ .x = pos.x - 1, .y = pos.y + 2 });
+    //std.debug.print("[RIGHT] visitSplitter()=({}, {})\n", .{ pos.x, pos.y });
+    findSplitterBelow(context, .{ .x = pos.x + 1, .y = pos.y + 2 });
+    //std.debug.print("[DONE]  visitSplitter()=({}, {}), count={}\n", .{ pos.x, pos.y, context.count });
+}
+
+// Basically depth-first search
+fn part2(diagram: *parsing.Diagram) u64 {
+    var context: Part2Context = .{ .diagram = diagram };
+
+    visitSplitter(&context, findFirstSplitterPosition(diagram));
+
+    return context.count;
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -51,10 +93,12 @@ pub fn main() !void {
     defer allocator.free(contents);
 
     // Parse
-    var diagram = try parsing.Diagram.init(allocator, contents);
-    defer diagram.deinit(allocator);
+    var diagram_part1 = try parsing.Diagram.init(allocator, contents);
+    var diagram_part2 = try diagram_part1.clone(allocator);
+    defer diagram_part1.deinit(allocator);
+    defer diagram_part2.deinit(allocator);
 
     // Solve
-    std.debug.print("[Part 1] Solution={}\n", .{part1(&diagram)});
-    //std.debug.print("[Part 2] Solution={}\n", .{part2(&column_list)});
+    std.debug.print("[Part 1] Solution={}\n", .{part1(&diagram_part1)});
+    std.debug.print("[Part 2] Solution={}\n", .{part2(&diagram_part2)});
 }
