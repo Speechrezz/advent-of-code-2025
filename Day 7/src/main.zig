@@ -34,53 +34,25 @@ fn part1(diagram: *parsing.Diagram) u64 {
     return split_count;
 }
 
-const Position = struct {
-    x: usize,
-    y: usize,
-};
+fn part2(diagram: *parsing.Diagram) u64 {
+    var split_count: u64 = 0;
+    var y: usize = 1;
 
-const Part2Context = struct {
-    diagram: *parsing.Diagram,
-    count: usize = 0,
-};
+    while (y < diagram.height) {
+        defer y += 1;
 
-fn findFirstSplitterPosition(diagram: *parsing.Diagram) Position {
-    const y = 2;
-    return .{
-        .x = std.mem.indexOfScalar(u8, diagram.getLine(y), parsing.Diagram.splitter) orelse unreachable,
-        .y = y,
-    };
-}
+        for (0..diagram.width) |x| {
+            const above = diagram.atCoords(x, y - 1).*;
 
-fn findSplitterBelow(context: *Part2Context, start_pos: Position) void {
-    var pos = start_pos;
-    while (pos.y < context.diagram.height) {
-        defer pos.y += 2;
-        if (context.diagram.atCoords(pos.x, pos.y).* == parsing.Diagram.splitter) {
-            visitSplitter(context, pos);
-            return;
+            if (above == parsing.Diagram.start or above == parsing.Diagram.laser) {
+                split_count += hasLaserAbove(diagram, x, y);
+            }
         }
+
+        std.debug.print("[{}]\t\'{s}\' - count={}\n", .{ y, diagram.getLine(y), split_count });
     }
 
-    // Reached bottom
-    context.count += 1;
-}
-
-fn visitSplitter(context: *Part2Context, pos: Position) void {
-    //std.debug.print("[LEFT]  visitSplitter()=({}, {})\n", .{ pos.x, pos.y });
-    findSplitterBelow(context, .{ .x = pos.x - 1, .y = pos.y + 2 });
-    //std.debug.print("[RIGHT] visitSplitter()=({}, {})\n", .{ pos.x, pos.y });
-    findSplitterBelow(context, .{ .x = pos.x + 1, .y = pos.y + 2 });
-    //std.debug.print("[DONE]  visitSplitter()=({}, {}), count={}\n", .{ pos.x, pos.y, context.count });
-}
-
-// Basically depth-first search
-fn part2(diagram: *parsing.Diagram) u64 {
-    var context: Part2Context = .{ .diagram = diagram };
-
-    visitSplitter(&context, findFirstSplitterPosition(diagram));
-
-    return context.count;
+    return split_count;
 }
 
 pub fn main() !void {
