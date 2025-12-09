@@ -72,24 +72,55 @@ fn appendIfNotThere(allocator: std.mem.Allocator, list: *std.ArrayList(*Node), n
 
 pub const Group = struct {
     connections: std.ArrayList(Connection) = .empty,
-    node_count: u64 = 0,
+    nodes: std.ArrayList(*Node) = .empty,
+
+    pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+        self.connections.deinit(allocator);
+        self.nodes.deinit(allocator);
+    }
 
     pub fn countNodes(self: *@This(), allocator: std.mem.Allocator) !void {
-        var node_list: std.ArrayList(*Node) = .empty;
-        defer node_list.deinit(allocator);
-
         for (self.connections.items) |connection| {
-            try appendIfNotThere(allocator, &node_list, connection.node1);
-            try appendIfNotThere(allocator, &node_list, connection.node2);
+            try appendIfNotThere(allocator, &self.nodes, connection.node1);
+            try appendIfNotThere(allocator, &self.nodes, connection.node2);
+        }
+    }
+
+    pub fn merge(self: *@This(), allocator: std.mem.Allocator, other: *@This()) !void {
+        try self.connections.appendSlice(allocator, other.connections.items);
+        try self.nodes.appendSlice(allocator, other.nodes.items);
+
+        other.deinit(allocator);
+    }
+
+    pub fn findShortestConnection(self: *const @This(), other: @This()) Connection {
+        var connection: Connection = .{
+            .node1 = undefined,
+            .node2 = undefined,
+            .distance = std.math.maxInt(u64),
+        };
+
+        for (self.nodes.items) |node1| {
+            for (other.nodes.items) |node2| {
+                var new_connection: Connection = .{
+                    .node1 = node1,
+                    .node2 = node2,
+                };
+                new_connection.computeDistance();
+
+                if (new_connection.distance < connection.distance) {
+                    connection = new_connection;
+                }
+            }
         }
 
-        self.node_count = node_list.items.len;
+        return connection;
     }
 };
 pub const GroupList = std.ArrayList(Group);
 
 pub fn groupLenDesc(_: void, a: Group, b: Group) bool {
-    return a.node_count > b.node_count;
+    return a.nodes.items.len > b.nodes.items.len;
 }
 
 pub const Graph = struct {
@@ -116,7 +147,7 @@ pub const Graph = struct {
         self.node_list.deinit(allocator);
 
         for (self.group_list.items) |*group| {
-            group.connections.deinit(allocator);
+            group.deinit(allocator);
         }
 
         self.group_list.deinit(allocator);
@@ -157,12 +188,23 @@ pub const Graph = struct {
             try group.countNodes(allocator);
             try self.group_list.append(allocator, group);
         }
+
+        // Generate groups with only 1 node each
+
+        const group_length = self.group_list.items.len;
+        for (self.node_list.items) |*node| {
+            if (isInGroup(self.group_list.items[0..group_length], node)) continue;
+
+            var group: Group = .{};
+            try group.nodes.append(allocator, node);
+            try self.group_list.append(allocator, group);
+        }
     }
 
-    fn isPartOfGroup(connection: Connection, group: Group) bool {
-        for (group.connections.items) |connection_other| {
-            if (connection.hasCommon(connection_other)) {
-                return true;
+    fn isInGroup(group_list: []const Group, node: *Node) bool {
+        for (group_list) |group| {
+            for (group.nodes.items) |node_in_group| {
+                if (node == node_in_group) return true;
             }
         }
 
