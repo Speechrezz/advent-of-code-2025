@@ -7,12 +7,36 @@ pub fn readFile(allocator: std.mem.Allocator, file_path: []const u8) ![]u8 {
     return try file.readToEndAlloc(allocator, 1 << 24);
 }
 
-pub const Lights = std.ArrayList(bool);
-pub const ButtonWiring = std.ArrayList(std.ArrayList(u32));
+pub const BitVector = struct {
+    bits: u16 = 0,
+
+    pub fn bitCount(self: @This()) u16 {
+        return @intCast(@popCount(self.bits));
+    }
+
+    pub fn enableBit(self: *@This(), i: u4) void {
+        self.bits |= (@as(u16, 1) << i);
+    }
+
+    pub fn readBit(self: @This(), i: u4) bool {
+        return (self.bits & (@as(u16, 1) << i)) != 0;
+    }
+
+    pub fn eql(self: @This(), other: @This()) bool {
+        return self.bits == other.bits;
+    }
+
+    pub fn xor(self: @This(), other: @This()) @This() {
+        return .{ .bits = self.bits ^ other.bits };
+    }
+};
+
+pub const Lights = BitVector;
+pub const ButtonWiring = std.ArrayList(BitVector);
 pub const Joltage = std.ArrayList(u32);
 
 pub const Machine = struct {
-    lights: Lights = .empty,
+    lights: Lights = .{},
     button_wiring: ButtonWiring = .empty,
     joltage: Joltage = .empty,
 
@@ -20,7 +44,7 @@ pub const Machine = struct {
         var machine: Machine = .{};
         var space_iter = std.mem.splitScalar(u8, line, ' ');
 
-        try machine.parseLights(allocator, space_iter.first());
+        machine.parseLights(space_iter.first());
 
         while (space_iter.next()) |slice| {
             switch (slice[0]) {
@@ -34,27 +58,25 @@ pub const Machine = struct {
     }
 
     pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
-        for (self.button_wiring.items) |*button| {
-            button.deinit(allocator);
-        }
-
-        self.lights.deinit(allocator);
         self.button_wiring.deinit(allocator);
         self.joltage.deinit(allocator);
     }
 
-    fn parseLights(self: *@This(), allocator: std.mem.Allocator, slice: []const u8) !void {
+    fn parseLights(self: *@This(), slice: []const u8) void {
+        var i: u4 = 0;
         for (slice[1 .. slice.len - 1]) |char| {
-            try self.lights.append(allocator, char == '#');
+            defer i += 1;
+            if (char == '#') self.lights.enableBit(i);
         }
     }
 
     fn parseButtonWiring(self: *@This(), allocator: std.mem.Allocator, slice: []const u8) !void {
-        var button: std.ArrayList(u32) = .empty;
+        var button: BitVector = .{};
 
         var comma_iter = std.mem.splitScalar(u8, slice[1 .. slice.len - 1], ',');
         while (comma_iter.next()) |token| {
-            try button.append(allocator, try std.fmt.parseUnsigned(u32, token, 10));
+            const i = try std.fmt.parseUnsigned(u4, token, 10);
+            button.enableBit(i);
         }
 
         try self.button_wiring.append(allocator, button);
