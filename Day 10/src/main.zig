@@ -9,8 +9,6 @@ fn part1(factory: *parsing.Factory) u64 {
         const total_subsets: parsing.BitVector = .{ .bits = @as(u16, 1) << n };
 
         var best_count: u16 = std.math.maxInt(u16);
-        var best_subset: parsing.BitVector = .{};
-
         var subset: parsing.BitVector = .{};
 
         // Brute force search through every combo of buttons
@@ -26,9 +24,8 @@ fn part1(factory: *parsing.Factory) u64 {
                 }
             }
 
-            if (lights.eql(machine.lights) and count < best_count) {
-                best_count = count;
-                best_subset = subset;
+            if (lights.eql(machine.lights)) {
+                best_count = @min(best_count, count);
             }
         }
 
