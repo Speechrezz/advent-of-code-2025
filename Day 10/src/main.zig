@@ -15,6 +15,9 @@ fn part1(factory: *parsing.Factory) u64 {
 
         // Brute force search through every combo of buttons
         while (subset.bits < total_subsets.bits) : (subset.bits += 1) {
+            const count = subset.bitCount();
+            if (count >= best_count) continue;
+
             var lights: parsing.BitVector = .{};
 
             for (machine.button_wiring.items, 0..) |button, i| {
@@ -23,7 +26,6 @@ fn part1(factory: *parsing.Factory) u64 {
                 }
             }
 
-            const count = subset.bitCount();
             if (lights.eql(machine.lights) and count < best_count) {
                 best_count = count;
                 best_subset = subset;
