@@ -35,6 +35,12 @@ pub const Lights = BitVector;
 pub const ButtonWiring = std.ArrayList(BitVector);
 pub const Joltage = [16]u32;
 
+pub fn addButtonToJoltage(num_lights: usize, button: BitVector, joltage: *Joltage) void {
+    for (0..num_lights) |i| {
+        joltage.*[i] += @intCast(@intFromBool(button.readBit(@intCast(i))));
+    }
+}
+
 pub const Machine = struct {
     num_lights: usize = 0,
     lights: Lights = .{},
