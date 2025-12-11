@@ -16,11 +16,7 @@ pub fn main() !void {
     defer graph.deinit(allocator);
     try graph.build(allocator, contents);
 
-    // std.debug.print("graph.node_start={}\n", .{graph.node_start});
-    // for (graph.nodes.items) |node| {
-    //     std.debug.print("node.name={s}, node.outputs={any}\n", .{ node.name, node.outputs.items });
-    // }
-
     // Solve
-    std.debug.print("[Part 1] Solution={}\n", .{dfs.search(&graph)});
+    std.debug.print("[Part 1] Solution={}\n", .{dfs.searchPart1(&graph)});
+    std.debug.print("[Part 2] Solution={}\n", .{dfs.searchPart2(&graph)});
 }
