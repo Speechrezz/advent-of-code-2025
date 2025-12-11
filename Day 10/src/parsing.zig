@@ -33,12 +33,13 @@ pub const BitVector = struct {
 
 pub const Lights = BitVector;
 pub const ButtonWiring = std.ArrayList(BitVector);
-pub const Joltage = std.ArrayList(u32);
+pub const Joltage = [16]u32;
 
 pub const Machine = struct {
+    num_lights: usize = 0,
     lights: Lights = .{},
     button_wiring: ButtonWiring = .empty,
-    joltage: Joltage = .empty,
+    joltage: Joltage = [_]u32{0} ** 16,
 
     pub fn init(allocator: std.mem.Allocator, line: []const u8) !@This() {
         var machine: Machine = .{};
@@ -49,7 +50,7 @@ pub const Machine = struct {
         while (space_iter.next()) |slice| {
             switch (slice[0]) {
                 '(' => try machine.parseButtonWiring(allocator, slice),
-                '{' => try machine.parseJoltage(allocator, slice),
+                '{' => try machine.parseJoltage(slice),
                 else => unreachable,
             }
         }
@@ -59,7 +60,6 @@ pub const Machine = struct {
 
     pub fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
         self.button_wiring.deinit(allocator);
-        self.joltage.deinit(allocator);
     }
 
     fn parseLights(self: *@This(), slice: []const u8) void {
@@ -68,6 +68,8 @@ pub const Machine = struct {
             defer i += 1;
             if (char == '#') self.lights.enableBit(i);
         }
+
+        self.num_lights = slice.len - 2;
     }
 
     fn parseButtonWiring(self: *@This(), allocator: std.mem.Allocator, slice: []const u8) !void {
@@ -82,10 +84,12 @@ pub const Machine = struct {
         try self.button_wiring.append(allocator, button);
     }
 
-    fn parseJoltage(self: *@This(), allocator: std.mem.Allocator, slice: []const u8) !void {
+    fn parseJoltage(self: *@This(), slice: []const u8) !void {
         var comma_iter = std.mem.splitScalar(u8, slice[1 .. slice.len - 1], ',');
+        var i: usize = 0;
         while (comma_iter.next()) |token| {
-            try self.joltage.append(allocator, try std.fmt.parseUnsigned(u32, token, 10));
+            defer i += 1;
+            self.joltage[i] = try std.fmt.parseUnsigned(u32, token, 10);
         }
     }
 };
