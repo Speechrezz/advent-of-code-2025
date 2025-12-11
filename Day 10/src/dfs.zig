@@ -90,6 +90,7 @@ fn dfsStep(input_context: DfsContext) void {
         }
 
         if (is_equal) {
+            std.debug.print("is_equal={}\n", .{context.count});
             context.best_count.* = context.count;
             return;
         }
@@ -99,12 +100,14 @@ fn dfsStep(input_context: DfsContext) void {
 
     if (context.isCurrentPriorityFulfilled(joltage)) {
         if (!context.nextPriorityLevel()) return; // No more priority levels
+        //std.debug.print("count={}, nextPriority={}, button_group={any}, joltage={any}\n", .{ context.count, context.priority_level, context.getButtonGroup(), joltage });
         min_button_index = 0;
     }
 
     const button_group = context.getButtonGroup();
 
     for (button_group) |button_index| {
+        //std.debug.print("button_index={}, min_button_index={}, button_group={any}\n", .{ button_index, min_button_index, button_group });
         if (!(button_index >= min_button_index)) continue;
 
         var new_context = context;
@@ -194,6 +197,8 @@ pub fn getButtonIndicesByPriority(
         try button_priorities.append(allocator, button_group);
         if (remaining_buttons.items.len == 0) break;
     }
+
+    std.debug.assert(remaining_buttons.items.len == 0);
 
     return button_priorities;
 }

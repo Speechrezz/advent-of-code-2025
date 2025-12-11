@@ -1,6 +1,7 @@
 const std = @import("std");
 const parsing = @import("parsing.zig");
 const dfs = @import("dfs.zig");
+const dfs2 = @import("dfs2.zig");
 
 fn part1(factory: *parsing.Factory) u64 {
     var sum: u64 = 0;
@@ -51,5 +52,6 @@ pub fn main() !void {
 
     // Solve
     std.debug.print("[Part 1] Solution={}\n", .{part1(&factory)});
-    std.debug.print("[Part 2] Solution={}\n", .{try dfs.search(allocator, &factory)});
+    //std.debug.print("[Part 2] Solution={}\n", .{try dfs.search(allocator, &factory)});
+    std.debug.print("[Part 2] Solution={}\n", .{dfs2.search(&factory)});
 }
